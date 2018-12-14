@@ -1,2 +1,5 @@
 # dot-emacs
-My .emacs file and other emacs stuff
+
+This repository contains my .emacs file. It's not realy private, but
+would most likely be booring for anyone but me.... you've been warned!
+
