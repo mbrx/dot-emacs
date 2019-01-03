@@ -30,6 +30,8 @@
 ;;; ORG-mode ------------------------------------------------------------------
 ;;
 
+(require 'org)
+
 (org-babel-do-load-languages
  'org-babel-load-languages
  '((python . t) (plantuml . t) (ditaa . t) (dot . t)))
@@ -43,6 +45,87 @@
 ;; Display inline images in ORG-mode
 (add-hook 'org-babel-after-execute-hook 'org-redisplay-inline-images)
 
+;; ORG-session handling from:
+;; http://kitchingroup.cheme.cmu.edu/blog/2015/03/19/Restarting-org-babel-sessions-in-org-mode-more-effectively/A
+
+(setq org-babel-python-command "python3")
+
+(defun org-babel-kill-session ()
+  "Kill session for current code block."
+  (interactive)
+  (unless (org-in-src-block-p)
+    (error "You must be in a src-block to run this command"))
+  (save-window-excursion
+    (org-babel-switch-to-session)
+    (kill-buffer)))
+(define-key org-mode-map (kbd "C-c k") 'org-babel-kill-session)
+
+(defun org-babel-remove-result-buffer ()
+  "Remove results from every code block in buffer."
+  (interactive)
+  (save-excursion
+    (goto-char (point-min))
+    (while (re-search-forward org-babel-src-block-regexp nil t)
+      (org-babel-remove-result))))
+(define-key org-mode-map (kbd "C-c l") 'org-babel-remove-result-buffer)
+
+(defun src-block-in-session-p (&optional name)
+  "Return if src-block is in a session of NAME.
+NAME may be nil for unnamed sessions."
+  (let* ((info (org-babel-get-src-block-info))
+         (lang (nth 0 info))
+         (body (nth 1 info))
+         (params (nth 2 info))
+         (session (cdr (assoc :session params))))
+
+    (cond
+     ;; unnamed session, both name and session are nil
+     ((and (null session)
+           (null name))
+      t)
+     ;; Matching name and session
+     ((and
+       (stringp name)
+       (stringp session)
+       (string= name session))
+      t)
+     ;; no match
+     (t nil))))
+
+(defun org-babel-restart-session-to-point (&optional arg)
+  "Restart session up to the src-block in the current point.
+Goes to beginning of buffer and executes each code block with
+`org-babel-execute-src-block' that has the same language and
+session as the current block. ARG has same meaning as in
+`org-babel-execute-src-block'."
+  (interactive "P")
+  (unless (org-in-src-block-p)
+    (error "You must be in a src-block to run this command"))
+  (let* ((current-point (point-marker))
+         (info (org-babel-get-src-block-info))
+         (lang (nth 0 info))
+         (params (nth 2 info))
+         (session (cdr (assoc :session params))))
+    (save-excursion
+      (goto-char (point-min))
+      (while (re-search-forward org-babel-src-block-regexp nil t)
+        ;; goto start of block
+        (goto-char (match-beginning 0))
+        (let* ((this-info (org-babel-get-src-block-info))
+               (this-lang (nth 0 this-info))
+               (this-params (nth 2 this-info))
+               (this-session (cdr (assoc :session this-params))))
+            (when
+                (and
+                 (< (point) (marker-position current-point))
+                 (string= lang this-lang)
+                 (src-block-in-session-p session))
+              (org-babel-execute-src-block arg)))
+        ;; move forward so we can find the next block
+        (forward-line)))))
+;; (global-unset-key (kbd "C-c C-r"))
+;; (global-set-key (kbd "C-c C-r") 'org-babel-restart-session-to-point)
+(define-key org-mode-map (kbd "C-c r") 'org-babel-restart-session-to-point)
 
 ;;
 ;;; C-like languages ----------------------------------------------------------
@@ -106,6 +189,9 @@ of FILE in the current directory, suitable for creation"
 (global-set-key (kbd "C-x C-r") 'query-replace)
 (tool-bar-mode -1)
 
+;; Don't query when killing process windows
+(setq kill-buffer-query-functions (delq 'process-kill-buffer-query-function kill-buffer-query-functions))
+
 ;; Pretty Ctrl-L
 (require 'pp-c-l)
 (pretty-control-l-mode 1)
@@ -154,7 +240,10 @@ of FILE in the current directory, suitable for creation"
  '(helm-boring-file-regexp-list
    (quote
     ("\\.o$" "~$" "\\.bin$" "\\.lbin$" "\\.so$" "\\.a$" "\\.ln$" "\\.blg$" "\\.bbl$" "\\.elc$" "\\.lof$" "\\.glo$" "\\.idx$" "\\.lot$" "\\.svn$" "\\.hg$" "\\.git$" "\\.bzr$" "CVS$" "_darcs$" "_MTN$" "\\.fmt$" "\\.tfm$" "\\.class$" "\\.fas$" "\\.lib$" "\\.mem$" "\\.x86f$" "\\.sparcf$" "\\.dfsl$" "\\.pfsl$" "\\.d64fsl$" "\\.p64fsl$" "\\.lx64fsl$" "\\.lx32fsl$" "\\.dx64fsl$" "\\.dx32fsl$" "\\.fx64fsl$" "\\.fx32fsl$" "\\.sx64fsl$" "\\.sx32fsl$" "\\.wx64fsl$" "\\.wx32fsl$" "\\.fasl$" "\\.ufsl$" "\\.fsl$" "\\.dxl$" "\\.lo$" "\\.la$" "\\.gmo$" "\\.mo$" "\\.toc$" "\\.aux$" "\\.cp$" "\\.fn$" "\\.ky$" "\\.pg$" "\\.tp$" "\\.vr$" "\\.cps$" "\\.fns$" "\\.kys$" "\\.pgs$" "\\.tps$" "\\.vrs$" "\\.pyc$" "\\.pyo$")))
- '(inhibit-startup-screen t))
+ '(inhibit-startup-screen t)
+ '(package-selected-packages
+   (quote
+    (outline-magic yasnippet undo-tree slime qml-mode pp-c-l pep8 markdown-preview-eww markdown-mode helm-themes helm ein cmake-mode clang-format ace-jump-mode))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
