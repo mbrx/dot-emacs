@@ -1,5 +1,7 @@
-(setq user-emacs-directory "/home/mathias/")
+(setq user-emacs-directory "/home/matbro/")
 (add-to-list 'load-path "~/.emacs.d/helm-c-yasnippet")
+
+(set-face-attribute 'default nil :height 150)
 
 ;;
 ;;; Load the package manager
@@ -19,6 +21,7 @@
 
 ;; Recentf
 (recentf-mode 1)
+(setq recentf-max-menu-items 250)
 (setq-default recent-save-file "~/.emacs.d/recentf")
 (setq helm-ff-file-name-history-use-recentf t)
 (global-set-key (kbd "C-c f") 'helm-recentf)
@@ -26,6 +29,13 @@
 ;; Unbind C-x C-c since i have clumsy fingers
 (global-unset-key (kbd "C-x C-c"))
 
+(require 'git-commit)
+(require 'realgud)
+(load-library "realgud")
+(desktop-save-mode 1)
+
+(when (fboundp 'winner-mode)
+      (winner-mode 1))
 ;;
 ;;; ORG-mode ------------------------------------------------------------------
 ;;
@@ -181,9 +191,8 @@ of FILE in the current directory, suitable for creation"
 ;;
 ;;; Generic tools -------------------------------------------------------------
 ;;
-
-(global-set-key (kbd "C-x C-a") 'align)
-(global-set-key (kbd "C-x M-a") 'align-regexp)
+(global-set-key (kbd "C-x C-a C-a") 'align)
+(global-set-key (kbd "C-x M-a M-a") 'align-regexp)
 (global-set-key (kbd "C-x C-<tab>") 'untabify)
 (global-set-key (kbd "C-=") 'calculator)
 (global-set-key (kbd "C-x C-r") 'query-replace)
@@ -243,7 +252,7 @@ of FILE in the current directory, suitable for creation"
  '(inhibit-startup-screen t)
  '(package-selected-packages
    (quote
-    (outline-magic yasnippet undo-tree slime qml-mode pp-c-l pep8 markdown-preview-eww markdown-mode helm-themes helm ein cmake-mode clang-format ace-jump-mode))))
+    (multi-web-mode web-mode jinja2-mode realgud git-commit clocker binclock flycheck-pycheckers yaml-mode outline-magic yasnippet undo-tree slime qml-mode pp-c-l pep8 markdown-preview-eww markdown-mode helm-themes helm ein cmake-mode clang-format ace-jump-mode))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
@@ -418,7 +427,7 @@ of FILE in the current directory, suitable for creation"
 
 ;; Whitespace, highlight wider than 80 chars
 (require 'whitespace)
-(setq whitespace-line-column 79) ;; limit line length
+(setq whitespace-line-column 99) ;; limit line length
 (setq whitespace-style '(face lines-tail trailing tabs))
 (add-hook 'before-save-hook 'whitespace-cleanup)
 
@@ -480,6 +489,24 @@ of FILE in the current directory, suitable for creation"
 ;; (global-set-key (kbd "M-4") 'ecb-goto-window-history)
 ;; (global-set-key (kbd "M-5") 'ecb-goto-window-compilation)
 
+
+(defun find-first-non-ascii-char ()
+  "Find the first non-ascii character from point onwards."
+  (interactive)
+  (let (point)
+    (save-excursion
+      (setq point
+            (catch 'non-ascii
+              (while (not (eobp))
+                (or (eq (char-charset (following-char))
+                        'ascii)
+                    (throw 'non-ascii (point)))
+                (forward-char 1)))))
+    (if point
+        (goto-char point)
+        (message "No non-ascii characters."))))
+
+(display-time)
 (provide '.emacs)
 ;;; .emacs ends here
 
