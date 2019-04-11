@@ -19,6 +19,10 @@
 ;; Disable electric-pair (which inserts matching paranthesis etc. automatically)
 (electric-pair-mode 0)
 
+;; ibuffers
+(global-set-key (kbd "C-x C-b") 'ibuffer)
+(autoload 'ibuffer "ibuffer" "List buffers." t)
+
 ;; Recentf
 (recentf-mode 1)
 (setq recentf-max-menu-items 250)
@@ -35,7 +39,25 @@
 (desktop-save-mode 1)
 
 (when (fboundp 'winner-mode)
-      (winner-mode 1))
+  (winner-mode 1))
+
+
+;; (prefer-coding-system 'utf-8)
+;; (set-language-environment 'utf-8)
+;; (set-default-coding-systems 'utf-8)
+;; (set-terminal-coding-system 'utf-8)
+;; (set-keyboard-coding-system 'utf-8)
+
+;; (setq locale-coding-system 'utf-8)
+
+;; (if (boundp 'buffer-file-coding-system)
+;;     (setq-default buffer-file-coding-system 'utf-8)
+;;   (setq default-buffer-file-coding-system 'utf-8))
+
+;; (add-hook 'compile-mode-hook 'ansi-color-for-comint-mode-on)
+;; (add-hook 'shell-mode-hook 'ansi-color-for-comint-mode-on)
+;; (add-to-list 'comint-output-filter-functions 'ansi-color-process-output)
+
 ;;
 ;;; ORG-mode ------------------------------------------------------------------
 ;;
@@ -147,6 +169,7 @@ session as the current block. ARG has same meaning as in
 (setq-default c-default-style "k&r")
 (setq-default indent-tabs-mode nil)
 (defun my-indent-setup ()
+  (c-set-offset 'innamespace 0)
   (c-set-offset 'arglist-intro '+))
 (add-hook 'c-mode-hook 'my-indent-setup)
 (add-hook 'c++-mode-hook 'my-indent-setup)
@@ -161,6 +184,7 @@ session as the current block. ARG has same meaning as in
 (setq auto-mode-alist (cons '("\.cu$" . c-mode) auto-mode-alist))
 (setq auto-mode-alist (cons '("\.cl$" . c-mode) auto-mode-alist))
 (setq auto-mode-alist (cons '("\.glsl$" . c-mode) auto-mode-alist))
+(add-to-list 'auto-mode-alist '("\\.h\\'" . c++-mode))
 
 (require 'cl)
 (defun* get-closest-pathname (&optional (file "Makefile"))
@@ -180,12 +204,27 @@ of FILE in the current directory, suitable for creation"
     ;;(cd (file-name-directory makefile))
     (compile (format "cd %s; make -f %s %s" (file-name-directory makefile) makefile target))))
 
-(global-set-key (kbd "<f4>") (lambda() (interactive) (do-compile)))
+(defun compile-project ()
+  (interactive)
+  (let* ((mk-dir (locate-dominating-file (buffer-file-name) "Makefile"))
+         (compile-command (concat "make -k -C " (shell-quote-argument mk-dir) " "))
+         )
+    ;(compilation-read-command nil))
+    (call-interactively 'compile)))
+
+(global-set-key (kbd "<f4>") (lambda() (interactive) (compile-project)))
+;;(global-set-key (kbd "<f4>") (lambda() (interactive) (do-compile)))
 (global-set-key (kbd "<f5>") (lambda() (interactive) (do-compile "run")))
 (global-set-key (kbd "C-r") (lambda() (interactive) (do-compile "run")))
 
-;;;
+(ignore-errors
+  (require 'ansi-color)
+  (defun my-colorize-compilation-buffer ()
+    (when (eq major-mode 'compilation-mode)
+      (ansi-color-apply-on-region compilation-filter-start (point-max))))
+  (add-hook 'compilation-filter-hook 'my-colorize-compilation-buffer))
 
+;;;
 ;;
 
 ;;
@@ -252,7 +291,8 @@ of FILE in the current directory, suitable for creation"
  '(inhibit-startup-screen t)
  '(package-selected-packages
    (quote
-    (multi-web-mode web-mode jinja2-mode realgud git-commit clocker binclock flycheck-pycheckers yaml-mode outline-magic yasnippet undo-tree slime qml-mode pp-c-l pep8 markdown-preview-eww markdown-mode helm-themes helm ein cmake-mode clang-format ace-jump-mode))))
+    (sr-speedbar multi-web-mode web-mode jinja2-mode realgud git-commit clocker binclock flycheck-pycheckers yaml-mode outline-magic yasnippet undo-tree slime qml-mode pp-c-l pep8 markdown-preview-eww markdown-mode helm-themes helm ein cmake-mode clang-format ace-jump-mode)))
+ '(undo-tree-visualizer-diff t))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
