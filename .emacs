@@ -19,9 +19,6 @@
 ;; Disable electric-pair (which inserts matching paranthesis etc. automatically)
 (electric-pair-mode 0)
 
-;; ibuffers
-(global-set-key (kbd "C-x C-b") 'ibuffer)
-(autoload 'ibuffer "ibuffer" "List buffers." t)
 
 ;; Recentf
 (recentf-mode 1)
@@ -58,6 +55,30 @@
 ;; (add-hook 'shell-mode-hook 'ansi-color-for-comint-mode-on)
 ;; (add-to-list 'comint-output-filter-functions 'ansi-color-process-output)
 
+;;
+;;; ibuffer ------------------------------------------------------------------
+;;
+
+;; ibuffers
+(global-set-key (kbd "C-x C-b") 'ibuffer)
+(autoload 'ibuffer "ibuffer" "List buffers." t)
+
+(setq ibuffer-saved-filter-groups
+          (quote (("default"
+                   ("dired" (mode . dired-mode))
+                   ("Python" (mode . python-mode))
+                   ("C/C++" (or
+                         (mode . c-mode)
+                         (mode . c++-mode)
+                         ))
+                   ("emacs" (or
+                             (mode . compilation-mode)
+                             (name . "^\\*scratch\\*$")
+                             (name . "^\\*Messages\\*$")))))
+                 ))
+(add-hook 'ibuffer-mode-hook
+          (lambda ()
+            (ibuffer-switch-to-saved-filter-groups "default")))
 ;;
 ;;; ORG-mode ------------------------------------------------------------------
 ;;
@@ -258,6 +279,28 @@ of FILE in the current directory, suitable for creation"
 
 (setq doc-view-resolution 300)
 
+(defun rgrep-word ()
+  "setting up rgrep-command using current word under cursor as a search string"
+  (interactive)
+  (with-syntax-table (make-syntax-table (syntax-table))
+    (modify-syntax-entry ?_ "w")
+    (let* ((cur-word (thing-at-point 'word))
+           (dir (read-directory-name "Search from: ")))
+                                        ; (get-closest-pathname "Makefile"))))
+      (rgrep cur-word "*.cc *.[ch]xx *.[ch]pp *.[CHh] *.CC *.HH *.[ch]++ *.cu *.py" dir))))
+(defun rgrep-word-headers-only ()
+  "setting up rgrep-command using current word under cursor as a search string"
+  (interactive)
+  (with-syntax-table (make-syntax-table (syntax-table))
+    (modify-syntax-entry ?_ "w")
+    (let* ((cur-word (thing-at-point 'word))
+           (dir (read-directory-name "Search from: ")))
+                                        ; (get-closest-pathname "Makefile"))))
+      (rgrep cur-word "*.[Hh] *.HH *.hxx *.hpp *.[Hh]++" dir))))
+(global-set-key (kbd "<f1>") 'rgrep-word-headers-only)
+(global-set-key (kbd "<f2>") 'rgrep-word)
+
+
 ;;;
 
 ;;
@@ -292,7 +335,7 @@ of FILE in the current directory, suitable for creation"
  '(package-selected-packages
    (quote
     (sr-speedbar multi-web-mode web-mode jinja2-mode realgud git-commit clocker binclock flycheck-pycheckers yaml-mode outline-magic yasnippet undo-tree slime qml-mode pp-c-l pep8 markdown-preview-eww markdown-mode helm-themes helm ein cmake-mode clang-format ace-jump-mode)))
- '(undo-tree-visualizer-diff t))
+ '(undo-tree-visualizer-diff nil))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
